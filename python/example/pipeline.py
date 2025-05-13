@@ -7,7 +7,8 @@ from livekit.agents import (
     JobProcess,
     WorkerOptions,
     cli,
-    pipeline,
+    Agent,
+    AgentSession,
 )
 from livekit.plugins import openai, deepgram, silero
 from langgraph_livekit_agents import LangGraphAdapter
@@ -40,14 +41,20 @@ async def entrypoint(ctx: JobContext):
     )
 
     graph = RemoteGraph("agent", url="http://localhost:2024")
-    agent = pipeline.VoicePipelineAgent(
+
+    session = AgentSession(
         vad=ctx.proc.userdata["vad"],
         stt=deepgram.STT(),
         llm=LangGraphAdapter(graph, config={"configurable": {"thread_id": thread_id}}),
         tts=openai.TTS(),
     )
 
-    agent.start(ctx.room, participant)
+    await session.start(
+        agent=Agent(
+            instructions="You are a voice assistant designed for clear, concise spoken responses.",
+        ),
+        room=ctx.room,
+    )
 
 
 if __name__ == "__main__":

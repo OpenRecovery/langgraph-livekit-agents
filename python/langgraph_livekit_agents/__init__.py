@@ -31,12 +31,10 @@ class LangGraphStream(llm.LLMStream):
         llm: llm.LLM,
         chat_ctx: llm.ChatContext,
         graph: PregelProtocol,
-        fnc_ctx: Optional[Dict] = None,
+        tools: list[llm.FunctionTool] = None,
         conn_options: APIConnectOptions = None,
     ):
-        super().__init__(
-            llm, chat_ctx=chat_ctx, fnc_ctx=fnc_ctx, conn_options=conn_options
-        )
+        super().__init__(llm, chat_ctx=chat_ctx, tools=tools, conn_options=conn_options)
         self._graph = graph
 
     async def _run(self):
@@ -44,7 +42,7 @@ class LangGraphStream(llm.LLMStream):
         input_human_message = next(
             (
                 self._to_message(m)
-                for m in reversed(self.chat_ctx.messages)
+                for m in reversed(self.chat_ctx.items)
                 if m.role == "user"
             ),
             None,
@@ -133,10 +131,8 @@ class LangGraphStream(llm.LLMStream):
         id: str | None = None,
     ) -> llm.ChatChunk | None:
         return llm.ChatChunk(
-            request_id=id or shortuuid(),
-            choices=[
-                llm.Choice(delta=llm.ChoiceDelta(role="assistant", content=content))
-            ],
+            id=id or shortuuid(),
+            delta=llm.ChoiceDelta(role="assistant", content=content),
         )
 
     @staticmethod
@@ -170,13 +166,14 @@ class LangGraphAdapter(llm.LLM):
     def chat(
         self,
         chat_ctx: llm.ChatContext,
-        fnc_ctx: llm.FunctionContext,
+        tools: list[llm.FunctionTool] = None,
         conn_options: APIConnectOptions = DEFAULT_API_CONNECT_OPTIONS,
+        **kwargs,
     ) -> llm.LLMStream:
         return LangGraphStream(
             self,
             chat_ctx=chat_ctx,
             graph=self._graph,
-            fnc_ctx=fnc_ctx,
+            tools=tools,
             conn_options=conn_options,
         )
