@@ -62,7 +62,8 @@ class LangGraphStream(llm.LLMStream):
 
         try:
             async for mode, data in self._graph.astream(
-                input, config=self._llm._config, stream_mode=["messages", "custom"]
+                input, config=self._llm._config, stream_mode=["messages", "custom"],
+                multitask_strategy="rollback"
             ):
                 if mode == "messages":
                     if chunk := await self._to_livekit_chunk(data[0]):
@@ -153,6 +154,16 @@ class LangGraphStream(llm.LLMStream):
         elif isinstance(msg, dict):
             request_id = msg.get("id")
             content = msg.get("content")
+        
+        if not content:
+            content = ""
+        elif isinstance(content, list):
+            if content[0].get("type") == "tool_use": # temporary fix
+                return None
+            message = ""
+            for item in content:
+                message += item.get("text")
+            content = message
 
         return LangGraphStream._create_livekit_chunk(content, id=request_id)
 
