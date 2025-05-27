@@ -28,10 +28,13 @@ from langgraph_livekit_agents import LangGraphAdapter
 from langgraph.pregel.remote import RemoteGraph
 from langgraph.graph import StateGraph
 from uuid import uuid4, uuid5, UUID
+import os
 
 
 load_dotenv()
 logger = logging.getLogger("voice-agent")
+
+remote_graph_url = os.environ.get("REMOTE_GRAPH_URL")
 
 def get_thread_id(sid: str | None) -> str:
     NAMESPACE = UUID("41010b5d-5447-4df5-baf2-97d69f2e9d06")
@@ -189,7 +192,7 @@ async def entrypoint(ctx: JobContext):
         metrics.log_metrics(agent_metrics)
         usage_collector.collect(agent_metrics)
     
-    graph = RemoteGraph("stepwork_assistant", url="https://recovery-assistant-test-b83dc205e85b58f9a6c353fa5374053e.default.us.langgraph.app")
+    graph = RemoteGraph("stepwork_assistant", url=remote_graph_url)
 
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
